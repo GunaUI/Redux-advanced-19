@@ -1,4 +1,4 @@
-import * as actionTypes from '../actions/actions';
+import * as actionTypes from '../actions/actionTypes';
 
 const initialState = {
     results: []
@@ -7,6 +7,7 @@ const initialState = {
 const reducer = ( state = initialState, action ) => {
     switch ( action.type ) {
         case actionTypes.STORE_RESULT:
+        // Transform logic incase if you are trying to do..
             return {
                 ...state,
                 results: state.results.concat({id: new Date(), value: action.result})
