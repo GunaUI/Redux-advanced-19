@@ -1,74 +1,114 @@
-## Async Actions
+## Executing Async Code
 
-### Restructing Actions
-* Now we are going to split up actions into multiple file just like reducers
-* Refer counter, result and actionTypes file inside actions folder.
-* Now i want one file that export all my action creators (index.js)
+### Action Creators
+
+* how does that look like? What is that? 
+
+* An action creator is just a function which returns an action or which creates an action,
+
+* In actions.js
+```jsx
+export const increment = () => {
+    return {
+        type: INCREMENT
+    };
+};
+
+export const decrement = () => {
+    return {
+        type: DECREMENT
+    };
+};
+
+export const add = (value) => {
+    return {
+        type: ADD,
+        val: value
+    };
+};
+
+export const subtract = (value) => {
+    return {
+        type: SUBTRACT,
+        val: value
+    };
+};
+
+export const storeResult = (res) => {
+    return {
+        type: STORE_RESULT,
+        result: res
+    };
+};
+
+export const deleteResult = (resElId) => {
+    return {
+        type: DELETE_RESULT,
+        resultElId: resElId
+    };
+};
+```
+* Now we can get actions which is return from this function as follows.eg when we execute actionCreators.increment that will return actions.
 
 ```jsx
-// This is new syntax .. here we are exporting multiple files into one file, later we can import these details from one file..
-export {
-    add,
-    subtract,
-    increment,
-    decrement
-} from './counter';
-
-export {
-    storeResult,
-    deleteResult
-} from './result';
-
+const mapDispatchToProps = dispatch => {
+    return {
+        onIncrementCounter: () => dispatch(actionCreators.increment()),
+        onDecrementCounter: () => dispatch(actionCreators.decrement()),
+        onAddCounter: () => dispatch(actionCreators.add(10)),
+        onSubtractCounter: () => dispatch(actionCreators.subtract(15)),
+        onStoreResult: (result) => dispatch(actionCreators.storeResult(result)),
+        onDeleteResult: (id) => dispatch(actionCreators.deleteResult(id))
+    }
+};
 ```
-* Now we have to update these changes in our reducer and dispatch(counter.js inside container folder) file.
-```
-```
-### Transforming Logic
+### Handling Async Code
 
-* The action creators are the only place where we can execute the Asynchronous code. All you API calls should be done in action creators.
+* Now I want to take advantage of them to handle asynchronous code and to handle asynchronous code, we need
+to add a special middleware to our redux project,a third party library we can add called redux-thunk.
 
-* We save our save result but in case if you want to update/Transform your result before it get save.
 ```jsx
+npm install --save redux-thunk
+```
+* Generally, this is a library which as I just said adds a middleware to your project which allows your action creators to not return the action itself but return a function which will eventually dispatch an action. 
+
+* Next we have register this as a middleware to our project. https://github.com/reduxjs/redux-thunk
+
+* In index.js we have to import our new middleware
+```jsx
+import ReduxThunk from 'redux-thunk' 
+...
+...
+// Apply this ReduxThunk middleware after the logger
+const store = createStore(rootReducer, composeEnhancers(applyMiddleware(logger, ReduxThunk)));
+```
+* Now in action creators ie in action.js file.
+```jsx
+// export const storeResult = (res) => {
+//     return {
+//         type: STORE_RESULT,
+//         result: res
+//     };
+// };
 
 export const saveResult = ( res ) => {
-    //you can add transform logic...here 
-    let updatedResult = res * 2 ;
     return {
-        type: actionTypes.STORE_RESULT,
-        result: updatedResult
+        type: STORE_RESULT,
+        result: res
     };
 }
-
+// Only after 2 sec we want to execute saveResult just to mimic async call like data once after saved only we will get response
+export const storeResult = ( res ) => {
+    return dispatch => {
+        setTimeout( () => {
+            // res is the payload to saveResult
+            dispatch(saveResult(res));
+        }, 2000 );
+    }
+};
 ```
-* You could do the same kind of tranforming logic in reducers too..
-```jsx
- results: state.results.concat({id: new Date(), value: action.result * 2 })
-```
+* I said that middleware runs between the dispatching of an action and the point of time the action reaches the reducer,
 
-#### what's better? Let's take a closer look.
+* now the thing we do here is we still dispatch an action but then redux-thunk, the middleware comes in,steps in, has access to the action(logger) there,basically blocks the old action we could say and dispatches it again in the future "next(action)".
 
-* we have action creators and reducers as options.
-
-* Now action creators as you learned are great for running async code when you dispatch an action,
- 
-* reducers on the other hand only are able to run synchronous code and are pure, input in updated state out.
-
-* Reducers however keep that in mind, are meant to be the place where you update the state, this is one core redux concept. 
-
-* Action creators are not core redux concept, a core concept are actions, these javascript objects with a type and a payload. So the reducer is the core concept and the whole idea behind redux is that the reducer is the only thing which updates the state, action creators shouldn't prepare the state too much
-
-* for that reason because it should be the reducer which does the update but there of course is also a difference between updating the state which essentially just means returning a new object which makes up our state and changing the data which goes into the state.
-
-* Still you can find arguments for both directions, I lean towards putting the logic into the reducer and not too much logic into the action creator.
-
-* Asynchronous code has to go there but once you got back the data from the server you might need to reach out, you can of course transform it in the action creator and you should do that to a certain extent but once you've got data that is relatively clean, you should hand it off to the reducer.
-
-* And if you then still need to manipulate it, for example by taking 8 times 2 or anything like that, in my opinion that should go into the reducer.
-
-* Now you will also find arguments for the other side and in the end, it's your decision. If you chooseone approach, stick to it though, don't change it, don't put a lot of logic in one action creator, just to then have a lot of logic in another reducer.
-
-* Be consistent and decide, where do you want to transform and prepare your data, the action creator or reducer, I recommend the latter but ultimately it's up to you, just take a consistent route.
-
-* Refer 3.png image in refer folder for which is best place to add trasform logic
-
-
+* Now the new action will reach the reducer but in-between, redux-thunk is able to wait because it can dispatch an action whenever it wants.This is the asynchronous part and that is exactly allowing us to execute some asynchronous code inside of this function.
