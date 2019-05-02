@@ -21,8 +21,7 @@ export {
 
 ```
 * Now we have to update these changes in our reducer and dispatch(counter.js inside container folder) file.
-```
-```
+
 ### Transforming Logic
 
 * The action creators are the only place where we can execute the Asynchronous code. All you API calls should be done in action creators.
