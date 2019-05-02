@@ -70,4 +70,24 @@ export const saveResult = ( res ) => {
 
 * Refer 3.png image in refer folder for which is best place to add trasform logic
 
+### Utility Methods
+
+* getState() method used get current state you can use with your actions despatch method.
+
+* we can get the counter just as in the counter container in mapStateToProps, we have to access ctr.counter.
+
+```jsx
+export const storeResult = ( res ) => {
+    return (dispatch, getState) => {
+        setTimeout( () => {
+            // const oldCounter = getState().ctr.counter;
+            // console.log(oldCounter);
+            dispatch(saveResult(res));
+        }, 2000 );
+    }
+};
+```
+* That's the old counter I get right before dispatching this event which then actually leads to the code executed in the reducer.
+* You can too pass this as argumnets to actions.. that is the better way. but still you can use this utility method also..
+
 
