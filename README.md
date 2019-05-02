@@ -1,60 +1,114 @@
-## Redux Advanced concepts
+## Executing Async Code
 
-### Middleware
+### Action Creators
 
-* Before we dive into running asynchronous code, let me dive into a super important advanced concept we have when working with redux
+* how does that look like? What is that? 
 
-*  I always mean redux the package on its own, be that connected to your react app or not. You may add middleware to it right between your action being dispatched and it reaching the reducer, this is where you can add middleware.
+* An action creator is just a function which returns an action or which creates an action,
 
-* Middleware basically is a term used for functions or the code general you hook into a process which then gets executed as part of that process without stopping it. (Refer Image attached.. 1.png and 2.png)
-
-* we can add middleware and the action will still reach the reducer thereafter but we can do something with that action before it reaches the reducer, that can be simply logging something,but that will also become important later when we want to execute asynchronous code,
-
-* so for now, let's see middleware in action by adding it to our project. 
-
-* we are creating store in index.js let us add some simple middleware functions and hook it with our store.
+* In actions.js
 ```jsx
-const logger = store => {
-    return next => {
-        return action => {
-            console.log('[Middleware] Dispatching', action);
-            const result = next(action);
-            console.log('[Middleware] next state', store.getState());
-            return result;
-        }
+export const increment = () => {
+    return {
+        type: INCREMENT
+    };
+};
+
+export const decrement = () => {
+    return {
+        type: DECREMENT
+    };
+};
+
+export const add = (value) => {
+    return {
+        type: ADD,
+        val: value
+    };
+};
+
+export const subtract = (value) => {
+    return {
+        type: SUBTRACT,
+        val: value
+    };
+};
+
+export const storeResult = (res) => {
+    return {
+        type: STORE_RESULT,
+        result: res
+    };
+};
+
+export const deleteResult = (resElId) => {
+    return {
+        type: DELETE_RESULT,
+        resultElId: resElId
+    };
+};
+```
+* Now we can get actions which is return from this function as follows.eg when we execute actionCreators.increment that will return actions.
+
+```jsx
+const mapDispatchToProps = dispatch => {
+    return {
+        onIncrementCounter: () => dispatch(actionCreators.increment()),
+        onDecrementCounter: () => dispatch(actionCreators.decrement()),
+        onAddCounter: () => dispatch(actionCreators.add(10)),
+        onSubtractCounter: () => dispatch(actionCreators.subtract(15)),
+        onStoreResult: (result) => dispatch(actionCreators.storeResult(result)),
+        onDeleteResult: (id) => dispatch(actionCreators.deleteResult(id))
     }
 };
 ```
-* next is simply a function passed into the middleware (by Redux) which you need to call to "forward" the action. Otherwise, it will not proceed to the next middleware in line (or to the reducer ultimately).
+### Handling Async Code
 
-* then we have to import applyMiddleware from redux.
-
-```jsx
-import { createStore, combineReducers, applyMiddleware} from 'redux';
-```
-* "applyMiddleware" allows us to add our own middleware to the store.
-```jsx
-const store = createStore(rootReducer, applyMiddleware(logger));
-```
-* So here in create store where we initialize the store,we can add more arguments and the second argument here can be a so-called enhancer.
-
-* Now this enhancer is nothing else than a middleware for example,so here we can call applyMiddleware and now we can pass our logger constant which holds this function
-
-* Actually, you can pass a list of middlewares here to applyMiddleware
-
-## Redux Dev Tools
-
-* Install redux and follow the instuctions https://github.com/zalmoxisus/redux-devtools-extension#usage 
-
-* After install import composer from react
+* Now I want to take advantage of them to handle asynchronous code and to handle asynchronous code, we need
+to add a special middleware to our redux project,a third party library we can add called redux-thunk.
 
 ```jsx
-  import { createStore, combineReducers, applyMiddleware, compose } from 'redux';
-
-  const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-
-  const store = createStore(rootReducer, composeEnhancers(applyMiddleware(logger)));
+npm install --save redux-thunk
 ```
+* Generally, this is a library which as I just said adds a middleware to your project which allows your action creators to not return the action itself but return a function which will eventually dispatch an action. 
 
+* Next we have register this as a middleware to our project. https://github.com/reduxjs/redux-thunk
 
+* In index.js we have to import our new middleware
+```jsx
+import ReduxThunk from 'redux-thunk' 
+...
+...
+// Apply this ReduxThunk middleware after the logger
+const store = createStore(rootReducer, composeEnhancers(applyMiddleware(logger, ReduxThunk)));
+```
+* Now in action creators ie in action.js file.
+```jsx
+// export const storeResult = (res) => {
+//     return {
+//         type: STORE_RESULT,
+//         result: res
+//     };
+// };
 
+export const saveResult = ( res ) => {
+    return {
+        type: STORE_RESULT,
+        result: res
+    };
+}
+// Only after 2 sec we want to execute saveResult just to mimic async call like data once after saved only we will get response
+export const storeResult = ( res ) => {
+    return dispatch => {
+        setTimeout( () => {
+            // res is the payload to saveResult
+            dispatch(saveResult(res));
+        }, 2000 );
+    }
+};
+```
+* I said that middleware runs between the dispatching of an action and the point of time the action reaches the reducer,
+
+* now the thing we do here is we still dispatch an action but then redux-thunk, the middleware comes in,steps in, has access to the action(logger) there,basically blocks the old action we could say and dispatches it again in the future "next(action)".
+
+* Now the new action will reach the reducer but in-between, redux-thunk is able to wait because it can dispatch an action whenever it wants.This is the asynchronous part and that is exactly allowing us to execute some asynchronous code inside of this function.
