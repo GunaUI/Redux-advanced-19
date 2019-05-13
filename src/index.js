@@ -34,3 +34,4 @@ const store = createStore(rootReducer, composeEnhancers(applyMiddleware(logger, 
 
 ReactDOM.render(<Provider store={store}><App /></Provider>, document.getElementById('root'));
 registerServiceWorker();
+
